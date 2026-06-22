@@ -1,5 +1,16 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { api } from '../api';
+import {
+  PackageStatusType,
+  PackageStatus,
+  PackageStatusBadgeClass,
+  PackageStatusLabel,
+  isPending,
+  isPickedUp,
+  isOverdue,
+  overdueDays,
+  getOverdueBadge,
+} from '../packageStatus';
 
 interface Package {
   id: number;
@@ -7,16 +18,10 @@ interface Package {
   recipient_phone: string;
   recipient_name: string;
   pickup_code: string;
-  status: string;
+  status: PackageStatusType;
   entered_at: string;
   picked_up_at: string | null;
   entered_by_name?: string;
-}
-
-function daysSince(dateStr: string): number {
-  const entered = new Date(dateStr).getTime();
-  const now = Date.now();
-  return Math.floor((now - entered) / 86400000);
 }
 
 export default function RecipientPage() {
@@ -64,8 +69,8 @@ export default function RecipientPage() {
     }
   };
 
-  const pendingPackages = packages.filter(p => p.status === 'pending');
-  const pickedPackages = packages.filter(p => p.status === 'picked_up');
+  const pendingPackages = packages.filter(p => isPending(p.status));
+  const pickedPackages = packages.filter(p => isPickedUp(p.status));
 
   return (
     <>
@@ -138,10 +143,11 @@ export default function RecipientPage() {
               </thead>
               <tbody>
                 {pendingPackages.map(p => {
-                  const days = daysSince(p.entered_at);
-                  const isOverdue = days > 3;
+                  const days = overdueDays(p.entered_at);
+                  const overdue = isOverdue(p.entered_at, p.status);
+                  const badge = getOverdueBadge(p.entered_at, p.status);
                   return (
-                    <tr key={p.id} className={isOverdue ? 'overdue-row' : ''}>
+                    <tr key={p.id} className={overdue ? 'overdue-row' : ''}>
                       <td>
                         <span className="tracking-no">{p.tracking_no}</span>
                         <button
@@ -155,10 +161,7 @@ export default function RecipientPage() {
                       <td><span className="code-highlight" style={{ fontSize: 18 }}>{p.pickup_code}</span></td>
                       <td className="text-sm text-gray">{p.entered_at}</td>
                       <td>
-                        {isOverdue
-                          ? <span className="badge badge-overdue">超时 {days} 天</span>
-                          : <span className="badge badge-pending">待取件</span>
-                        }
+                        <span className={badge.className}>{badge.text}</span>
                       </td>
                     </tr>
                   );
@@ -191,7 +194,7 @@ export default function RecipientPage() {
                     <td><span className="tracking-no">{p.tracking_no}</span></td>
                     <td className="text-sm text-gray">{p.entered_at}</td>
                     <td className="text-sm text-gray">{p.picked_up_at}</td>
-                    <td><span className="badge badge-picked">已取件</span></td>
+                    <td><span className={PackageStatusBadgeClass[PackageStatus.PICKED_UP]}>{PackageStatusLabel[PackageStatus.PICKED_UP]}</span></td>
                   </tr>
                 ))}
               </tbody>

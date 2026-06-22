@@ -1,5 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { api } from '../api';
+import { PackageStatusType, isPickedUp, getStatusBadgeClass, getStatusLabel } from '../packageStatus';
 
 interface Package {
   id: number;
@@ -7,7 +8,7 @@ interface Package {
   recipient_phone: string;
   recipient_name: string;
   pickup_code: string;
-  status: string;
+  status: PackageStatusType;
   entered_at: string;
   entered_by_name?: string;
 }
@@ -168,10 +169,7 @@ export default function CourierPage() {
                       <td>{p.recipient_phone}</td>
                       <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{p.pickup_code}</td>
                       <td>
-                        {p.status === 'picked_up'
-                          ? <span className="badge badge-picked">已取件</span>
-                          : <span className="badge badge-pending">待取件</span>
-                        }
+                        <span className={getStatusBadgeClass(p.status)}>{getStatusLabel(p.status)}</span>
                       </td>
                       <td className="text-sm text-gray">{p.entered_at}</td>
                     </tr>

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import db from '../db.js';
 import { roleMiddleware } from '../auth.js';
+import { PackageStatus, canPickup, getNextStatusForPickup } from '../packageStatus.js';
 
 const router = Router();
 
@@ -82,7 +83,7 @@ router.post('/pickup', roleMiddleware('recipient'), (req: Request, res: Response
       res.status(404).json({ error: '未找到该快递' });
       return;
     }
-    if (pkg.status === 'picked_up') {
+    if (!canPickup(pkg.status)) {
       res.status(400).json({ error: '该快递已被取走' });
       return;
     }
@@ -96,7 +97,7 @@ router.post('/pickup', roleMiddleware('recipient'), (req: Request, res: Response
       return;
     }
     db.prepare(
-      `UPDATE packages SET status = 'picked_up', picked_up_at = datetime('now','localtime'), picked_up_by = ? WHERE id = ?`
+      `UPDATE packages SET status = '${getNextStatusForPickup()}', picked_up_at = datetime('now','localtime'), picked_up_by = ? WHERE id = ?`
     ).run(req.user!.userId, pkg.id);
 
     const updated = db.prepare('SELECT * FROM packages WHERE id = ?').get(pkg.id);

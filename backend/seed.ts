@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { PackageStatus, PackageStatusType, isPending, isPickedUp, OVERDUE_DAYS } from './packageStatus.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, 'data');
@@ -84,7 +85,7 @@ interface PkgSeed {
   recipient_phone: string;
   recipient_name: string;
   pickup_code: string;
-  status: 'pending' | 'picked_up';
+  status: PackageStatusType;
   entered_by: string;
   entered_at: string;
   picked_up_at: string | null;
@@ -135,7 +136,7 @@ for (let i = 0; i < 6; i++) {
     recipient_phone: r.phone,
     recipient_name: r.name,
     pickup_code: code(),
-    status: 'pending',
+    status: PackageStatus.PENDING,
     entered_by: randomCourier(),
     entered_at: enteredAt,
     picked_up_at: null,
@@ -151,7 +152,7 @@ for (let i = 0; i < 3; i++) {
     recipient_phone: r.phone,
     recipient_name: r.name,
     pickup_code: code(),
-    status: 'pending',
+    status: PackageStatus.PENDING,
     entered_by: randomCourier(),
     entered_at: daysAgo(4, 10 + i, 30),
     picked_up_at: null,
@@ -167,7 +168,7 @@ for (let i = 0; i < 4; i++) {
     recipient_phone: r.phone,
     recipient_name: r.name,
     pickup_code: code(),
-    status: 'picked_up',
+    status: PackageStatus.PICKED_UP,
     entered_by: randomCourier(),
     entered_at: daysAgo(3, 9 + i * 2, 15),
     picked_up_at: daysAgo(3, 14 + i, i * 10),
@@ -184,7 +185,7 @@ for (let i = 0; i < 5; i++) {
     recipient_phone: r.phone,
     recipient_name: r.name,
     pickup_code: code(),
-    status: isPicked ? 'picked_up' : 'pending',
+    status: isPicked ? PackageStatus.PICKED_UP : PackageStatus.PENDING,
     entered_by: randomCourier(),
     entered_at: daysAgo(2, 8 + i * 2, 20),
     picked_up_at: isPicked ? daysAgo(1, 10 + i * 2, 30) : null,
@@ -201,7 +202,7 @@ for (let i = 0; i < 6; i++) {
     recipient_phone: r.phone,
     recipient_name: r.name,
     pickup_code: code(),
-    status: isPicked ? 'picked_up' : 'pending',
+    status: isPicked ? PackageStatus.PICKED_UP : PackageStatus.PENDING,
     entered_by: randomCourier(),
     entered_at: daysAgo(1, 9 + i, i * 8),
     picked_up_at: isPicked ? daysAgo(1, 14 + (i % 4), i * 12) : null,
@@ -220,7 +221,7 @@ for (let i = 0; i < 12; i++) {
     recipient_phone: r.phone,
     recipient_name: r.name,
     pickup_code: code(),
-    status: isPicked ? 'picked_up' : 'pending',
+    status: isPicked ? PackageStatus.PICKED_UP : PackageStatus.PENDING,
     entered_by: randomCourier(),
     entered_at: daysAgo(0, Math.max(7, pickupHour - 2), i * 5),
     picked_up_at: isPicked ? daysAgo(0, pickupHour, i * 6) : null,
@@ -254,7 +255,7 @@ console.log('  管理员: admin / admin123');
 console.log('  快递员: courier1 / courier123');
 console.log('  用户:   user1 / user123');
 console.log('\n  快递总数:', packages.length);
-console.log('  已取件:', packages.filter(p => p.status === 'picked_up').length);
-console.log('  待取件:', packages.filter(p => p.status === 'pending').length);
-console.log('  超时(>3天):', packages.filter(p => p.status === 'pending' && (Date.now() - new Date(p.entered_at).getTime()) > 3 * 86400000).length);
+console.log('  已取件:', packages.filter(p => isPickedUp(p.status)).length);
+console.log('  待取件:', packages.filter(p => isPending(p.status)).length);
+console.log(`  超时(>${OVERDUE_DAYS}天):`, packages.filter(p => isPending(p.status) && (Date.now() - new Date(p.entered_at).getTime()) > OVERDUE_DAYS * 86400000).length);
 console.log('');
